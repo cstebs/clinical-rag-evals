@@ -1,0 +1,43 @@
+{
+  "run_id": "008-retrieval-hybrid",
+  "n_labels": 40,
+  "grounded": {
+    "n": 40,
+    "raw_agreement": 1.0,
+    "cohen_kappa": 1.0,
+    "judge_lenient": 0,
+    "judge_harsh": 0
+  },
+  "correct": {
+    "n": 28,
+    "raw_agreement": 0.9286,
+    "cohen_kappa": 0.8108,
+    "judge_lenient": 0,
+    "judge_harsh": 2
+  },
+  "abstained": {
+    "n": 40,
+    "raw_agreement": 1.0,
+    "cohen_kappa": 1.0,
+    "judge_lenient": 0,
+    "judge_harsh": 0
+  },
+  "disagreements": [
+    {
+      "qid": "q051",
+      "field": "correct",
+      "judge": false,
+      "human": true,
+      "judge_reasoning": "Every claim in the system answer traces directly to the retrieved text: the protocol/statistical-section language and full analysis set exclusion circumstances come from passage [5], the blind-review decisions being described in the report from passage [6], and the important protocol deviation definition from passage [4], so the answer is grounded. However, it only covers the ICH E9 half of the reference answer; it omits the ICH E3 requirement that where analysis groups exclude subjects, data for the complementary excluded group must also be presented in the report, substituting instead documentation of protocol violation frequency/type and blind-review decisions. Because that material ICH E3 element is absent, the answer does not match the reference in substance. The system did not abstain.",
+      "human_note": "answers the question correctly from E9/E3 text; misses the reference's specific complementary-group point but the substance is right"
+    },
+    {
+      "qid": "q057",
+      "field": "correct",
+      "judge": false,
+      "human": true,
+      "judge_reasoning": "Every factual assertion in the system's answer traces to retrieved text: the E3 'integrated full report' language and the allowance for 'abbreviated reports using summarized data or with some sections deleted... for uncontrolled studies' come verbatim from passage [7]; the ICH GCP annex note comes from [8]; and the 21 CFR 314.50(d)(5) items (description of each uncontrolled study, summary of results, brief statement why classified uncontrolled; protocol and brief description for unanalyzed controlled studies) come from [5]. However, the answer does not match the reference in substance: the reference's key point for the FDA format guidance is that a tabular display of uncontrolled study results should suffice when controlled trials are plentiful and strongly supportive, which the system never states, and the reference's E3 point (each report should consider all described topics unless clearly not relevant, with sequence/grouping changeable) is likewise absent. The system substituted different, though grounded, content from 21 CFR 314.50 and E3's abbreviated-report provision, so it is not correct against the reference; it did not abstain.",
+      "human_note": "answers the question correctly from text; misses the reference's specific tabular display point but the substance is right"
+    }
+  ]
+}

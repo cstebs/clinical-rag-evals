@@ -1,0 +1,21 @@
+run_id: 004-size-256
+description: >-
+  Chunk size only: 512 to 256 tokens. Smaller chunks are more precise but split context across more retrievals.
+baseline: 003-chunk-section
+
+chunking:
+  strategy: section
+  target_tokens: 256
+  overlap_tokens: 0
+
+retrieval:
+  index: dense
+  rerank: false
+  rerank_depth: 30
+  query_rewrite: false
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

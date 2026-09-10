@@ -1,0 +1,21 @@
+run_id: 003-chunk-section
+description: >-
+  Chunking only: recursive to section-aware, using headings detected from the PDF typography. Chunks never cross a heading and carry their heading path.
+baseline: 002-chunk-recursive
+
+chunking:
+  strategy: section
+  target_tokens: 512
+  overlap_tokens: 0
+
+retrieval:
+  index: dense
+  rerank: false
+  rerank_depth: 30
+  query_rewrite: false
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

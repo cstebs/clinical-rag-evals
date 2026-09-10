@@ -1,0 +1,21 @@
+run_id: 009-rerank
+description: >-
+  Reranking only: a cross-encoder rescores the top 30 hybrid candidates and keeps 10. Pays latency for a model that reads query and passage together.
+baseline: 008-retrieval-hybrid
+
+chunking:
+  strategy: section
+  target_tokens: 512
+  overlap_tokens: 0
+
+retrieval:
+  index: hybrid
+  rerank: true
+  rerank_depth: 30
+  query_rewrite: false
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

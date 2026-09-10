@@ -1,0 +1,34 @@
+# Corpus artifacts: reproducible from data/manifest.json via `rag-evals ingest`
+data/raw/
+data/processed/
+
+# Build artifacts from `pip install -e .`
+*.egg-info/
+build/
+dist/
+
+# Caches
+.cache/
+.judge_cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Environments
+.venv/
+venv/
+.env
+
+# Model weights downloaded by fastembed at first run
+.models/
+
+# Editor
+.vscode/
+.idea/
+
+.claude/
+Thumbs.db
+
+SPEC.md
+pyproject.toml
+README-local.md

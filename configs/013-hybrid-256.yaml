@@ -1,0 +1,21 @@
+run_id: 013-hybrid-256
+description: >-
+  Chunk size only, on the hybrid retriever: 512 to 256 tokens, no reranking. Exists to give 014 a same-index baseline, so the reranking delta at 256 tokens is comparable to 009 against 008.
+baseline: 008-retrieval-hybrid
+
+chunking:
+  strategy: section
+  target_tokens: 256
+  overlap_tokens: 0
+
+retrieval:
+  index: hybrid
+  rerank: false
+  rerank_depth: 30
+  query_rewrite: false
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

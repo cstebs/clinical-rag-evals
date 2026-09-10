@@ -1,0 +1,21 @@
+run_id: 002-chunk-recursive
+description: >-
+  Chunking only: fixed windows to recursive splitting on paragraph then sentence boundaries. Isolates the cost of cutting text mid-sentence.
+baseline: 001-baseline
+
+chunking:
+  strategy: recursive
+  target_tokens: 512
+  overlap_tokens: 0
+
+retrieval:
+  index: dense
+  rerank: false
+  rerank_depth: 30
+  query_rewrite: false
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

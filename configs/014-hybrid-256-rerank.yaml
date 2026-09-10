@@ -1,0 +1,21 @@
+run_id: 014-hybrid-256-rerank
+description: >-
+  Reranking only, on 256-token chunks that fit the cross-encoder's 512-token window. Tests the mechanism Finding 4 claims for the negative reranking result: if truncation is the cause, this delta should beat the -0.041 that 009 posted against 008 at 512 tokens.
+baseline: 013-hybrid-256
+
+chunking:
+  strategy: section
+  target_tokens: 256
+  overlap_tokens: 0
+
+retrieval:
+  index: hybrid
+  rerank: true
+  rerank_depth: 30
+  query_rewrite: false
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

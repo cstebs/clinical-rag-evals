@@ -1,0 +1,65 @@
+// Judge validation subset. Hand-label 30-50 items from ONE run, then:
+//     rag-evals validate-judge --run-id <run_id>
+//
+// Procedure used (keep it identical if you extend this file, or the agreement
+// number stops meaning anything):
+//   1. Run a config with generation enabled. Do NOT read the judge's verdict yet.
+//   2. For each sampled qid, open results/<run_id>.json and read only the
+//      question, the retrieved passages, and the system answer.
+//   3. Label:
+//        grounded  - is EVERY claim in the answer supported by those passages?
+//                    (judge the passages only; ignore whether it is true)
+//                    an abstention asserts nothing, so it is grounded
+//        correct   - does it match the reference answer in substance?
+//                    an abstention on an answerable question is not correct
+//        abstained - did it decline, rather than hedge while still asserting?
+//   4. Only then compare against the judge, and record why you differed in `note`.
+//
+// Labels are pinned to run_id because a label is only valid for the answer text
+// it was written against. Re-label when the answers change.
+//
+// Schema:
+// {"qid":"q001","run_id":"008-retrieval-hybrid","grounded":true,"correct":true,"abstained":false,"note":""}
+//
+// Current contents: 40 items labelled against 008-retrieval-hybrid on 2026-09-05
+// (17 fact, 12 negative, 6 multi-hop, 5 near-miss), blind to the judge.
+{"qid": "q004", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q008", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q009", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q010", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q011", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q014", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q016", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q017", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q019", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q022", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": "The system answer was more detailed."}
+{"qid": "q025", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q027", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q034", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q035", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": false, "abstained": false, "note": "The expected answer was too vague and to call it a summary of the system error would be generous."}
+{"qid": "q037", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q043", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q044", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q048", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": false, "abstained": true, "note": "different comparison although same statistics."}
+{"qid": "q049", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": false, "abstained": false, "note": "doesnt actually have the actions listed."}
+{"qid": "q051", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": "answers the question correctly from E9/E3 text; misses the reference's specific complementary-group point but the substance is right"}
+{"qid": "q055", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": false, "abstained": false, "note": "does not fully cover the question asked such as expectations."}
+{"qid": "q057", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": "answers the question correctly from text; misses the reference's specific tabular display point but the substance is right"}
+{"qid": "q058", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": false, "abstained": true, "note": "system obstained from an answer."}
+{"qid": "q062", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q065", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q067", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q068", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": false, "abstained": false, "note": "this seemed like just a slight miss between the answers."}
+{"qid": "q071", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": false, "note": ""}
+{"qid": "q074", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q075", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q076", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q077", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q078", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q079", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q080", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q081", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q082", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q083", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q084", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}
+{"qid": "q085", "run_id": "008-retrieval-hybrid", "grounded": true, "correct": true, "abstained": true, "note": ""}

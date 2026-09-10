@@ -1,0 +1,21 @@
+run_id: 007-retrieval-bm25
+description: >-
+  Retrieval only: dense embeddings to BM25 lexical matching. Regulatory text is full of exact terms of art, which favours lexical more than folklore suggests.
+baseline: 003-chunk-section
+
+chunking:
+  strategy: section
+  target_tokens: 512
+  overlap_tokens: 0
+
+retrieval:
+  index: bm25
+  rerank: false
+  rerank_depth: 30
+  query_rewrite: false
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

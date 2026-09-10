@@ -1,0 +1,21 @@
+run_id: 010-query-rewrite
+description: >-
+  Query handling only: an LLM expands each question into regulatory phrasing, each variant is searched, and the rankings are fused. Requires model credentials.
+baseline: 008-retrieval-hybrid
+
+chunking:
+  strategy: section
+  target_tokens: 512
+  overlap_tokens: 0
+
+retrieval:
+  index: hybrid
+  rerank: false
+  rerank_depth: 30
+  query_rewrite: true
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000

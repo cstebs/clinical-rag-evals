@@ -1,0 +1,21 @@
+run_id: 011-rerank-and-rewrite
+description: >-
+  Both query rewriting and reranking on top of hybrid. Included to test whether the two gains stack or overlap; not a single-variable delta and labelled as such.
+baseline: 009-rerank
+
+chunking:
+  strategy: section
+  target_tokens: 512
+  overlap_tokens: 0
+
+retrieval:
+  index: hybrid
+  rerank: true
+  rerank_depth: 30
+  query_rewrite: true
+  top_k: 10
+
+generation:
+  enabled: true
+  model: claude-opus-5
+  max_context_chars: 24000
