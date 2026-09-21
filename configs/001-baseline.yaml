@@ -18,3 +18,8 @@ generation:
   enabled: true
   model: claude-opus-5
   max_context_chars: 24000
+
+prompts:
+  generate: v1
+  judge: v1
+  rewrite: v1

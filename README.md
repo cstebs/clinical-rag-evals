@@ -31,7 +31,7 @@ There is deliberately no chatbot UI. A frontend would add nothing to the argumen
 ## Quickstart
 
 ```bash
-git clone https://github.com/cstebs/rag-evals.git && cd rag-evals
+git clone https://github.com/cstebs/clinical-rag-evals.git && cd clinical-rag-evals
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"   # Windows: .venv\Scripts\pip
 
 rag-evals ingest              # fetch + parse the corpus (see the note on crawl time)
@@ -282,6 +282,53 @@ This project keeps the strict reading and publishes the disagreement instead.
 
 Full output, including the judge's reasoning beside each human note, is in
 `results/judge-validation-008-retrieval-hybrid.json`.
+
+---
+
+### Prompt versioning, change control, and rollback
+
+The judge prompt is the measurement instrument, and the generator prompt is
+the thing being measured, so neither lives inline in the source. Every system
+prompt is a versioned file under `prompts/<name>/<version>.md` with front
+matter (status, owner, purpose, what changed and why), every run config pins an
+explicit version of each, and every run record stores the version **and the
+SHA-256 of the text** it ran with:
+
+```json
+"prompts": {
+  "generate": {"version": "v1", "sha256": "704fc3dd...", "path": "prompts/generate/v1.md"},
+  "judge":    {"version": "v1", "sha256": "a3989c07...", "path": "prompts/judge/v1.md"},
+  "rewrite":  {"version": "v1", "sha256": "31aa3576...", "path": "prompts/rewrite/v1.md"}
+}
+```
+
+Three rules follow, each enforced by code rather than by convention:
+
+1. **A published version is immutable.** `rag-evals prompts audit` compares the
+   hash in every committed run record against the file on disk and exits
+   non-zero on a mismatch, and `tests/test_prompts.py` pins the hash of every
+   non-draft version. To change a prompt you add `v(N+1)`; editing `vN` fails
+   the suite.
+2. **A prompt bump is one experimental variable.** The `prompts:` section is
+   part of `RunConfig`, so the isolation rule treats a judge-prompt change
+   exactly like a chunking change. A run that bumps the judge and the generator
+   together gets the same warning as any other two-variable run.
+3. **Rollback is a config edit, and it is free.** The LLM cache key already
+   includes the full system prompt text, so re-running a config pinned back to
+   a version that has results makes zero API calls and reproduces the earlier
+   row exactly.
+
+```bash
+rag-evals prompts list                 # versions, status, hash, and which runs used each
+rag-evals prompts diff judge v1 v2     # what would change, before deciding
+rag-evals prompts audit                # every record, file and config agree, or exit 1
+```
+
+The full procedure for shipping a prompt change (draft, single-variable
+config, re-validate the judge if it is the judge, promote or retire, changelog)
+and for rolling one back is in [`prompts/README.md`](prompts/README.md). Changes
+to any prompt are logged under a **Prompts** heading in
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 
@@ -579,8 +626,11 @@ estimated here.
 ```
 rag-evals/
   README.md              <- the deliverable
+  CHANGELOG.md           <- code and prompt changes, by release
   pyproject.toml
-  configs/               <- one YAML per experiment run
+  configs/               <- one YAML per experiment run, each pinning prompt versions
+  prompts/               <- versioned system prompts; README.md has change control + rollback
+    generate/v1.md  judge/v1.md  rewrite/v1.md
   data/
     manifest.json        <- doc URLs, checksums, fetch dates, parse stats (committed)
     raw/ processed/      <- PDFs and extracted text (gitignored, reproducible)
@@ -595,6 +645,7 @@ rag-evals/
     ingest.py    chunk.py    index.py    retrieve.py
     generate.py  judge.py    metrics.py  run.py
     config.py    report.py   llm.py      tokenize.py    paths.py
+    prompts.py   <- loads, renders, hashes and audits prompts/
   tests/
 ```
 
@@ -612,8 +663,9 @@ cross a heading, a heading never duplicated into its own chunk, boilerplate
 stripped but not on short documents), heading-detector precision against the
 specific junk that used to fool it (addresses, footnote markers, dates, numbered
 list items, reference entries, table-of-contents lines), gold-set validation,
-cache-key sensitivity, and the config isolation rule applied to this repo's own
-configs.
+cache-key sensitivity, the config isolation rule applied to this repo's own
+configs, and prompt immutability: the hash of every published prompt version is
+pinned, so an in-place edit of a prompt that results depend on fails the suite.
 
 ---
 

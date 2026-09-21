@@ -36,37 +36,19 @@ from typing import Any, Sequence
 from .gold import GoldQuestion
 from .generate import ABSTAIN_MARKER, Answer
 from .llm import Call, LLMClient
+from .prompts import Prompt, load as load_prompt
 
-JUDGE_SYSTEM = f"""You are grading a retrieval-augmented answering system on FDA \
-guidance documents. You are a strict, consistent grader, not a helpful assistant.
 
-You are given: a question, the passages the system retrieved, the reference \
-answer, and the system's answer.
+def system_prompt(prompt: Prompt | None = None) -> str:
+    """The judge's system prompt, rendered from ``prompts/judge/<version>.md``.
 
-Produce four independent judgements.
-
-1. "grounded" - is EVERY factual claim in the system's answer supported by the \
-retrieved passages? Judge this against the passages ONLY. Ignore the reference \
-answer completely for this field. An answer that states a true fact which does \
-not appear in the passages is NOT grounded: the system got lucky, it did not \
-retrieve. If the system abstained, set grounded to true (an abstention asserts \
-nothing).
-
-2. "correct" - does the system's answer match the reference answer in substance? \
-Wording, length and ordering do not matter. Missing a material qualifier does - \
-in regulatory text, "should" and "must" are not interchangeable, and dropping a \
-scope condition changes the meaning. If the system abstained on a question that \
-has a reference answer, correct is false.
-
-3. "abstained" - did the system decline to answer, either by emitting \
-"{ABSTAIN_MARKER}" or by stating the passages do not contain the answer? Hedged \
-answers that still assert a claim are NOT abstentions.
-
-4. "reasoning" - two to four sentences explaining the ruling. Name the specific \
-claim and the specific passage when a claim is unsupported. This text is read by \
-a human during failure analysis, so be concrete rather than general.
-
-Grade what the system actually wrote, not what it probably meant."""
+    The judge prompt is the measurement instrument, which is exactly why it is
+    versioned and hashed into every run record rather than sitting inline where
+    an edit would silently change what "grounded" means for every later row.
+    With no argument this returns v1, the text every published verdict and the
+    40 hand-label agreements were produced against.
+    """
+    return (prompt or load_prompt("judge", "v1")).render(abstain_marker=ABSTAIN_MARKER)
 
 JUDGE_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -96,7 +78,12 @@ class Verdict:
         return asdict(self)
 
 
-def build_call(q: GoldQuestion, answer: Answer, max_context_chars: int = 24000) -> Call:
+def build_call(
+    q: GoldQuestion,
+    answer: Answer,
+    max_context_chars: int = 24000,
+    system: str | None = None,
+) -> Call:
     reference = (
         q.expected_answer
         if not q.is_negative
@@ -111,7 +98,7 @@ def build_call(q: GoldQuestion, answer: Answer, max_context_chars: int = 24000) 
     )
     return Call(
         key=f"judge::{q.qid}",
-        system=JUDGE_SYSTEM,
+        system=system if system is not None else system_prompt(),
         user=user,
         max_tokens=2048,
         # Grading is the intelligence-sensitive step in this pipeline: it is the
@@ -149,8 +136,10 @@ def judge_batch(
     questions: Sequence[GoldQuestion],
     answers: Sequence[Answer],
     max_context_chars: int = 24000,
+    prompt: Prompt | None = None,
 ) -> list[Verdict]:
-    calls = [build_call(q, a, max_context_chars) for q, a in zip(questions, answers)]
+    system = system_prompt(prompt)
+    calls = [build_call(q, a, max_context_chars, system) for q, a in zip(questions, answers)]
     responses = llm.complete_many(calls)
     return [
         parse_verdict(q.qid, r.text, a.abstained)

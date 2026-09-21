@@ -22,26 +22,21 @@ from typing import Any, Sequence
 
 from .index import Hit
 from .llm import Call, LLMClient
+from .prompts import Prompt, load as load_prompt
 from .retrieve import format_context
 
 ABSTAIN_MARKER = "INSUFFICIENT_CONTEXT"
 
-GENERATE_SYSTEM = f"""You answer questions about FDA guidance for industry using \
-only the numbered passages provided.
 
-Rules:
-- Use only the passages. Do not use prior knowledge about FDA guidance, even if \
-you are confident it is correct.
-- Every factual claim must cite the passage it came from, as [1], [2], and so on. \
-A sentence may cite more than one passage.
-- If the passages do not contain enough information to answer, set \
-"abstained" to true and set "answer" to exactly "{ABSTAIN_MARKER}". Do not \
-partially answer and do not guess. Declining is the correct behaviour when the \
-evidence is absent, and is scored as correct.
-- Do not hedge as a substitute for abstaining. Either the passages support an \
-answer, or they do not.
-- Be direct and concise. Regulatory language matters: preserve "should" versus \
-"must" exactly as the passage states it."""
+def system_prompt(prompt: Prompt | None = None) -> str:
+    """The generator's system prompt, rendered from ``prompts/generate/<version>.md``.
+
+    The text is not inline here on purpose: it is versioned, hashed into every
+    run record, and immutable once a result references it. See
+    :mod:`rag_evals.prompts`. With no argument this returns the v1 text, which
+    is what every pre-versioning result ran on.
+    """
+    return (prompt or load_prompt("generate", "v1")).render(abstain_marker=ABSTAIN_MARKER)
 
 GENERATE_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -72,12 +67,17 @@ class Answer:
         }
 
 
-def build_call(question: str, hits: Sequence[Hit], max_context_chars: int = 24000) -> Call:
+def build_call(
+    question: str,
+    hits: Sequence[Hit],
+    max_context_chars: int = 24000,
+    system: str | None = None,
+) -> Call:
     context = format_context(hits, max_chars=max_context_chars)
     user = f"Passages:\n\n{context}\n\n---\n\nQuestion: {question}"
     return Call(
         key=f"generate::{question}",
-        system=GENERATE_SYSTEM,
+        system=system if system is not None else system_prompt(),
         user=user,
         max_tokens=2048,
         effort="medium",
@@ -120,8 +120,10 @@ def generate_batch(
     questions: Sequence[str],
     hit_lists: Sequence[Sequence[Hit]],
     max_context_chars: int = 24000,
+    prompt: Prompt | None = None,
 ) -> list[Answer]:
-    calls = [build_call(q, h, max_context_chars) for q, h in zip(questions, hit_lists)]
+    system = system_prompt(prompt)
+    calls = [build_call(q, h, max_context_chars, system) for q, h in zip(questions, hit_lists)]
     responses = llm.complete_many(calls)
     return [
         parse_answer(q, h, r.text, c.user)

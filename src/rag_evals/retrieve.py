@@ -16,27 +16,16 @@ from typing import Any, Sequence
 from .chunk import Chunk
 from .index import CrossEncoderReranker, Hit, build_index
 from .llm import Call, LLMClient, LLMUnavailable
+from .prompts import Prompt, load as load_prompt
 
 # ---------------------------------------------------------------------------
 # query handling
 # ---------------------------------------------------------------------------
 
-REWRITE_SYSTEM = """You rewrite search queries for a retrieval system over FDA \
-guidance documents for industry.
 
-Given a user question, produce search queries that will match the vocabulary FDA \
-guidance actually uses. Regulatory text says "should" not "must", "sponsor" not \
-"company", "investigational new drug application" not "drug trial paperwork". \
-The gap between how a question is asked and how the answer is written is the \
-main reason retrieval misses.
-
-Rules:
-- Return the original question as the first query, unchanged.
-- Add 2 to 4 alternates that use formal regulatory phrasing, expand acronyms \
-(and add the acronym where the question spelled it out), and name the document \
-types likely to contain the answer.
-- Do not invent facts, requirements, or document titles.
-- Keep each query under 30 words."""
+def rewrite_system_prompt(prompt: Prompt | None = None) -> str:
+    """The rewriter's system prompt from ``prompts/rewrite/<version>.md`` (v1 by default)."""
+    return (prompt or load_prompt("rewrite", "v1")).render()
 
 REWRITE_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -62,14 +51,15 @@ class QueryRewriter:
     average the embeddings and usually retrieve less than the original query.
     """
 
-    def __init__(self, llm: LLMClient, rrf_k: int = 60):
+    def __init__(self, llm: LLMClient, rrf_k: int = 60, prompt: Prompt | None = None):
         self.llm = llm
         self.rrf_k = rrf_k
+        self.system = rewrite_system_prompt(prompt)
 
     def expand(self, question: str) -> list[str]:
         call = Call(
             key=f"rewrite::{question}",
-            system=REWRITE_SYSTEM,
+            system=self.system,
             user=question,
             max_tokens=1024,
             effort="low",  # a rewrite is not an intelligence-sensitive task
@@ -118,6 +108,7 @@ class Retriever:
         chunks: Sequence[Chunk],
         config: RetrievalConfig,
         llm: LLMClient | None = None,
+        rewrite_prompt: Prompt | None = None,
     ):
         self.chunks = list(chunks)
         self.config = config
@@ -127,7 +118,9 @@ class Retriever:
             if config.rerank
             else None
         )
-        self.rewriter = QueryRewriter(llm) if config.query_rewrite else None
+        self.rewriter = (
+            QueryRewriter(llm, prompt=rewrite_prompt) if config.query_rewrite else None
+        )
         if config.query_rewrite and llm is None:
             raise ValueError("query_rewrite=True requires an LLMClient")
 

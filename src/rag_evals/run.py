@@ -29,6 +29,7 @@ from .generate import generate_batch
 from .ingest import Manifest
 from .judge import judge_batch
 from .llm import LLMClient, LLMUnavailable
+from .prompts import PromptSet
 from .retrieve import Retriever
 
 
@@ -92,7 +93,19 @@ def execute(
             "Set ANTHROPIC_API_KEY (or run `ant auth login`), or pass --stub-llm."
         )
 
+    # Resolve the pinned prompt versions up front. A missing version is a config
+    # error and should fail before any work, and the versions plus their content
+    # hashes go into the run record so the row can never drift from the text
+    # that produced it.
+    prompt_set = PromptSet.from_config(cfg.prompts)
+    for warn in prompt_set.warnings():
+        print(f"  WARNING: {warn}")
+
     print(f"[{cfg.run_id}] {len(doc_ids)} documents, {len(questions)} questions")
+    print(
+        "  prompts: "
+        + ", ".join(f"{p.name}={p.version} ({p.sha256[:8]})" for p in prompt_set)
+    )
 
     # -- 1. chunk -------------------------------------------------------
     t = time.monotonic()
@@ -115,7 +128,7 @@ def execute(
         llm = LLMClient(model=cfg.generation.model, stub=stub_llm)
 
     t = time.monotonic()
-    retriever = Retriever(chunks, cfg.retrieval, llm=llm)
+    retriever = Retriever(chunks, cfg.retrieval, llm=llm, rewrite_prompt=prompt_set.rewrite)
     t_index = time.monotonic() - t
 
     t = time.monotonic()
@@ -148,6 +161,7 @@ def execute(
         "description": cfg.description,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "config": cfg.to_dict(),
+        "prompts": prompt_set.record(),
         "corpus": {
             "n_docs_selected": len(manifest.docs),
             "n_docs_used": len(doc_ids),
@@ -181,11 +195,14 @@ def execute(
                 [q.question for q in questions],
                 hit_lists,
                 cfg.generation.max_context_chars,
+                prompt=prompt_set.generate,
             )
             t_gen = time.monotonic() - t
 
             t = time.monotonic()
-            verdicts = judge_batch(llm, questions, answers, cfg.generation.max_context_chars)
+            verdicts = judge_batch(
+                llm, questions, answers, cfg.generation.max_context_chars, prompt=prompt_set.judge
+            )
             t_judge = time.monotonic() - t
 
             records = []

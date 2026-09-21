@@ -25,6 +25,7 @@ GOLD = EVALS / "gold.jsonl"
 HUMAN_LABELS = EVALS / "human_labels.jsonl"
 
 CONFIGS = ROOT / "configs"
+PROMPTS = ROOT / "prompts"
 RESULTS = ROOT / "results"
 
 CACHE = ROOT / ".cache"

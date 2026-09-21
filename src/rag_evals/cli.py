@@ -9,6 +9,7 @@
     rag-evals label             hand-label a run, with the judge verdict hidden
     rag-evals validate-judge    judge vs. human labels: agreement and kappa
     rag-evals estimate-cost     budget a sweep before spending on it
+    rag-evals prompts           list / show / diff / audit versioned system prompts
 """
 
 from __future__ import annotations
@@ -479,6 +480,71 @@ def cmd_estimate_cost(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+def cmd_prompts(args: argparse.Namespace) -> int:
+    """Versioned prompts: list, show, diff, audit.
+
+    ``audit`` is the one that matters. It exits non-zero if any committed run
+    record references prompt text that no longer matches the file on disk, so
+    an in-place edit of a published version cannot pass unnoticed.
+    """
+    import difflib
+
+    from . import prompts as prompts_mod
+
+    if args.action == "list":
+        used = prompts_mod.usage_by_results()
+        for p in prompts_mod.all_prompts():
+            runs = used.get((p.name, p.version), [])
+            print(
+                f"{p.name:9} {p.version:5} {p.status:8} {p.sha256[:12]}  "
+                f"created {p.meta.get('created', '?')}  runs: {', '.join(runs) or '-'}"
+            )
+            print(f"{'':36}{p.meta.get('changes', '')}")
+        return 0
+
+    if args.action == "show":
+        if not args.name or len(args.versions) != 1:
+            print("usage: rag-evals prompts show NAME VERSION", file=sys.stderr)
+            return 2
+        p = prompts_mod.load(args.name, args.versions[0])
+        print(f"# {p.name}/{p.version}  status={p.status}  sha256={p.sha256}")
+        for k, v in p.meta.items():
+            print(f"# {k}: {v}")
+        print()
+        print(p.text)
+        return 0
+
+    if args.action == "diff":
+        if not args.name or len(args.versions) != 2:
+            print("usage: rag-evals prompts diff NAME OLD_VERSION NEW_VERSION", file=sys.stderr)
+            return 2
+        a = prompts_mod.load(args.name, args.versions[0])
+        b = prompts_mod.load(args.name, args.versions[1])
+        print(f"# {b.name}/{b.version} changes: {b.meta.get('changes', '')}")
+        for line in difflib.unified_diff(
+            a.text.splitlines(), b.text.splitlines(),
+            fromfile=f"{a.name}/{a.version}", tofile=f"{b.name}/{b.version}", lineterm="",
+        ):
+            print(line)
+        return 0
+
+    if args.action == "audit":
+        problems, notes = prompts_mod.audit()
+        for n in notes:
+            print(f"note: {n}")
+        for pr in problems:
+            print(f"PROBLEM: {pr}", file=sys.stderr)
+        if problems:
+            print(f"\n{len(problems)} problem(s). Published prompt versions are immutable; "
+                  "put changed text in a new version.", file=sys.stderr)
+            return 1
+        print(f"\nprompt audit clean: {len(prompts_mod.all_prompts())} version(s) on disk, "
+              f"every run record and config consistent with them.")
+        return 0
+
+    return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="rag-evals", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -541,6 +607,12 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--questions", type=int, default=None)
     s.add_argument("--configs", type=int, default=None)
     s.set_defaults(func=cmd_estimate_cost)
+
+    s = sub.add_parser("prompts", help="list, show, diff, or audit versioned system prompts")
+    s.add_argument("action", choices=["list", "show", "diff", "audit"])
+    s.add_argument("name", nargs="?", help="generate | judge | rewrite (show, diff)")
+    s.add_argument("versions", nargs="*", help="one version for show, two for diff")
+    s.set_defaults(func=cmd_prompts)
 
     # A Windows console defaults to cp1252 and raises on any non-Latin-1
     # character in generated output. Reports are UTF-8; make the stream match.
