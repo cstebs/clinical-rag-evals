@@ -29,9 +29,10 @@ import hashlib
 import json
 import os
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
 
 from . import paths
 

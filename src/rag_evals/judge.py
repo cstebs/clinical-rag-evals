@@ -30,13 +30,15 @@ human diverged.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, asdict
-from typing import Any, Sequence
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass
+from typing import Any
 
-from .gold import GoldQuestion
 from .generate import ABSTAIN_MARKER, Answer
+from .gold import GoldQuestion
 from .llm import Call, LLMClient
-from .prompts import Prompt, load as load_prompt
+from .prompts import Prompt
+from .prompts import load as load_prompt
 
 
 def system_prompt(prompt: Prompt | None = None) -> str:

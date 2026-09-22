@@ -8,12 +8,12 @@ import pytest
 from rag_evals import paths
 from rag_evals import prompts as pm
 from rag_evals.config import RunConfig, isolation_warning
-from rag_evals.generate import ABSTAIN_MARKER, build_call as build_generate_call
+from rag_evals.generate import ABSTAIN_MARKER
+from rag_evals.generate import build_call as build_generate_call
 from rag_evals.generate import system_prompt as generate_system
 from rag_evals.judge import system_prompt as judge_system
 from rag_evals.prompts import PromptsConfig
 from rag_evals.retrieve import RetrievalConfig, rewrite_system_prompt
-
 
 # ---------------------------------------------------------------------------
 # immutability

@@ -15,6 +15,16 @@ the change-control and rollback procedure.
   and 3.12. CI badge in the README.
 - README TL;DR with the headline findings, so the results are visible before
   the method.
+- `rag-evals plot` and `src/rag_evals/plot.py`: the retrieval results as a
+  figure (`docs/figures/retrieval.png`), rendered from the committed run
+  records. `tests/test_plot.py` asserts it regenerates. matplotlib is an
+  optional `[plot]` extra.
+- README: link to [clinical-guidance-mcp](https://github.com/cstebs/clinical-guidance-mcp),
+  which ships run 008's retriever.
+- `ruff` configuration in `pyproject.toml` (E, F, W, I, UP; line length not
+  enforced) and a lint step in CI. Unused imports, deprecated `typing`
+  imports, and single-letter `l` variables cleaned up to pass it.
+- Git tags `v0.1.0` and `v0.2.0` on the commits the changelog describes.
 
 ### Fixed
 - `pyproject.toml` was listed in `.gitignore` and had never been committed, so

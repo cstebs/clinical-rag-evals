@@ -37,9 +37,10 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
-from dataclasses import dataclass, asdict, field
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 from . import paths
 
@@ -132,7 +133,7 @@ def validate(
                 return None
             payload = json.loads(p.read_text(encoding="utf-8"))
             doc_text_cache[doc_id] = _normalize(
-                " ".join(l["t"] for l in payload["lines"])
+                " ".join(entry["t"] for entry in payload["lines"])
             )
         return doc_text_cache[doc_id]
 

@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from . import paths
 
@@ -223,7 +224,7 @@ def corpus_summary() -> str:
         f"- **Documents selected:** {len(docs)} (from {m['selection']['index_rows_seen']:,} in the FDA index)",
         f"- **Usable after parsing:** {len(ok)} ({len(docs)-len(ok)} excluded for low text yield)",
         f"- **Pages:** {pages:,}  **Characters:** {chars:,}",
-        f"- **Issuing centers:** " + ", ".join(f"{k} ({v})" for k, v in centers.most_common()),
+        "- **Issuing centers:** " + ", ".join(f"{k} ({v})" for k, v in centers.most_common()),
         f"- **Index fetched:** {m['created_at'][:10]}",
     ]
     return "\n".join(lines)

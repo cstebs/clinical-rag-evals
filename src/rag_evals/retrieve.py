@@ -10,13 +10,15 @@ traced back to exactly which knobs were set.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from .chunk import Chunk
 from .index import CrossEncoderReranker, Hit, build_index
 from .llm import Call, LLMClient, LLMUnavailable
-from .prompts import Prompt, load as load_prompt
+from .prompts import Prompt
+from .prompts import load as load_prompt
 
 # ---------------------------------------------------------------------------
 # query handling

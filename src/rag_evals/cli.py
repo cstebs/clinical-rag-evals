@@ -22,7 +22,7 @@ from pathlib import Path
 from . import gold as gold_mod
 from . import metrics, paths, report
 from .config import RunConfig, isolation_warning
-from .llm import LLMClient, estimate_cost
+from .llm import estimate_cost
 from .run import ConfigUnavailable
 
 
@@ -186,6 +186,14 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plot(args: argparse.Namespace) -> int:
+    from . import plot
+
+    out = plot.plot_retrieval(report.load_runs(), out=Path(args.out) if args.out else plot.FIGURE)
+    print(f"wrote {out}")
+    return 0
+
+
 class _Quit(Exception):
     """The labeller asked to stop. Everything decided so far is already saved."""
 
@@ -231,7 +239,13 @@ def cmd_label(args: argparse.Namespace) -> int:
     """
     from .chunk import chunk_corpus
     from .config import ChunkingConfig
-    from .judge import HumanLabel, HumanLabelError, append_human_label, load_human_labels, select_for_labelling
+    from .judge import (
+        HumanLabel,
+        HumanLabelError,
+        append_human_label,
+        load_human_labels,
+        select_for_labelling,
+    )
 
     run_path = paths.RESULTS / f"{args.run_id}.json"
     if not run_path.exists():
@@ -282,7 +296,7 @@ def cmd_label(args: argparse.Namespace) -> int:
     except HumanLabelError as e:
         print(f"human_labels.jsonl has a bad line, fix it before labelling:\n  {e}", file=sys.stderr)
         return 1
-    already = {l.qid for l in existing if l.run_id == args.run_id}
+    already = {lab.qid for lab in existing if lab.run_id == args.run_id}
     queue = select_for_labelling(
         [(r["qid"], r["question_type"]) for r in run["per_question"]],
         already,
@@ -399,7 +413,7 @@ def cmd_validate_judge(args: argparse.Namespace) -> int:
         print("human_labels.jsonl is empty", file=sys.stderr)
         return 1
 
-    run_ids = {l.run_id for l in labels}
+    run_ids = {lab.run_id for lab in labels}
     if len(run_ids) > 1 and not args.run_id:
         print(f"labels span multiple runs {sorted(run_ids)}; pass --run-id", file=sys.stderr)
         return 1
@@ -588,6 +602,10 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--inject", default=None,
                    help="splice the report into a file between the RESULTS markers")
     s.set_defaults(func=cmd_report)
+
+    s = sub.add_parser("plot", help="render the retrieval results figure from results/")
+    s.add_argument("--out", default=None, help="output path (default: docs/figures/retrieval.png)")
+    s.set_defaults(func=cmd_plot)
 
     s = sub.add_parser("label", help="hand-label a run's answers, judge verdict hidden")
     s.add_argument("--run-id", required=True)

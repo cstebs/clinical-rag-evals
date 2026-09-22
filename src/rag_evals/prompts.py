@@ -193,7 +193,7 @@ class PromptSet:
     rewrite: Prompt
 
     @classmethod
-    def from_config(cls, cfg: PromptsConfig, root: str | Path | None = None) -> "PromptSet":
+    def from_config(cls, cfg: PromptsConfig, root: str | Path | None = None) -> PromptSet:
         return cls(
             generate=load("generate", cfg.generate, root),
             judge=load("judge", cfg.judge, root),

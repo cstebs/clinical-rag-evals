@@ -34,8 +34,8 @@ would flatter every configuration, since it silently grants a deeper read.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 DEFAULT_KS = (1, 3, 5, 10)
 

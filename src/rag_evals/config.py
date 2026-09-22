@@ -17,7 +17,7 @@ changed at once proves nothing.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -56,7 +56,7 @@ class RunConfig:
     prompts: PromptsConfig = field(default_factory=PromptsConfig)
 
     @classmethod
-    def load(cls, path: str | Path) -> "RunConfig":
+    def load(cls, path: str | Path) -> RunConfig:
         path = Path(path)
         if not path.exists() and not path.is_absolute():
             candidate = paths.CONFIGS / path.name
@@ -88,7 +88,7 @@ class RunConfig:
                 out[f"{section}.{k}"] = v
         return out
 
-    def diff(self, other: "RunConfig") -> dict[str, tuple[Any, Any]]:
+    def diff(self, other: RunConfig) -> dict[str, tuple[Any, Any]]:
         """Fields that differ between two configs, ``{field: (theirs, mine)}``."""
         a, b = other.flat(), self.flat()
         return {k: (a.get(k), b.get(k)) for k in set(a) | set(b) if a.get(k) != b.get(k)}

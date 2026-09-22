@@ -17,8 +17,8 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from . import gold as gold_mod
@@ -159,7 +159,7 @@ def execute(
     payload: dict[str, Any] = {
         "run_id": cfg.run_id,
         "description": cfg.description,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "config": cfg.to_dict(),
         "prompts": prompt_set.record(),
         "corpus": {

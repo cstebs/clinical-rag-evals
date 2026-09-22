@@ -8,13 +8,12 @@ import pytest
 from rag_evals import gold as gold_mod
 from rag_evals import paths
 from rag_evals.chunk import Chunk
-from rag_evals.config import RunConfig, isolation_warning, ChunkingConfig
-from rag_evals.index import BM25Index, HybridIndex, _topk, lexical_tokens
+from rag_evals.config import ChunkingConfig, RunConfig, isolation_warning
+from rag_evals.generate import ABSTAIN_MARKER, parse_answer
+from rag_evals.index import BM25Index, _topk, lexical_tokens
+from rag_evals.judge import parse_verdict
 from rag_evals.llm import Call, LLMClient, LLMResponse, estimate_cost
 from rag_evals.retrieve import RetrievalConfig
-from rag_evals.generate import parse_answer, ABSTAIN_MARKER
-from rag_evals.judge import parse_verdict
-
 
 # ---------------------------------------------------------------------------
 # gold set
@@ -306,7 +305,7 @@ class TestLabelWriting:
         append_human_label(path, HumanLabel("q001", "009-rerank", True, True, False, "ok"))
         append_human_label(path, HumanLabel("q002", "009-rerank", False, False, True, ""))
         back = load_human_labels(path)
-        assert [l.qid for l in back] == ["q001", "q002"]
+        assert [lab.qid for lab in back] == ["q001", "q002"]
         assert back[0].note == "ok"
         assert back[1].abstained is True
 

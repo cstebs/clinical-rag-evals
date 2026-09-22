@@ -8,8 +8,8 @@ a heading boundary.
 
 import pytest
 
-from rag_evals.chunk import Chunk, Document, Line, chunk_document
-from rag_evals.tokenize import Tokenizer, truncation_report
+from rag_evals.chunk import Document, Line, chunk_document
+from rag_evals.tokenize import truncation_report
 
 
 def _doc(lines):
@@ -57,7 +57,6 @@ class TestStrategies:
 
     def test_recursive_respects_target_size(self):
         doc = _doc([_body(s) for s in SENTENCES * 30])
-        tok = Tokenizer()
         chunks = chunk_document(doc, strategy="recursive", target_tokens=100)
         # A chunk may exceed the target only when a single indivisible unit
         # does; with these short sentences none do.

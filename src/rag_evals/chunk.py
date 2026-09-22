@@ -29,8 +29,9 @@ from __future__ import annotations
 import json
 import re
 import statistics
-from dataclasses import dataclass, asdict
-from typing import Any, Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from . import paths
 from .tokenize import Tokenizer, get_tokenizer, truncation_report
@@ -72,7 +73,7 @@ class Document:
 
     @property
     def text(self) -> str:
-        return "\n".join(l.text for l in self.lines)
+        return "\n".join(line.text for line in self.lines)
 
 
 def load_document(doc_id: str) -> Document:
@@ -80,7 +81,7 @@ def load_document(doc_id: str) -> Document:
     return Document(
         doc_id=payload["doc_id"],
         title=payload["title"],
-        lines=[Line(l["page"], l["t"], l["size"], l["bold"]) for l in payload["lines"]],
+        lines=[Line(line["page"], line["t"], line["size"], line["bold"]) for line in payload["lines"]],
     )
 
 
@@ -198,7 +199,7 @@ def _is_heading(line: Line, body_size: float) -> bool:
 
 
 def _body_size(lines: Sequence[Line]) -> float:
-    sizes = [l.size for l in lines if l.size > 0]
+    sizes = [line.size for line in lines if line.size > 0]
     if not sizes:
         return 10.0
     try:
@@ -213,10 +214,10 @@ def _boilerplate(lines: Sequence[Line], n_pages: int) -> set[str]:
     if n_pages < 4:
         return set()
     seen: dict[str, set[int]] = {}
-    for l in lines:
-        key = l.text.strip()
+    for line in lines:
+        key = line.text.strip()
         if 0 < len(key) <= 90:
-            seen.setdefault(key, set()).add(l.page)
+            seen.setdefault(key, set()).add(line.page)
     cutoff = 0.6 * n_pages
     return {k for k, pages in seen.items() if len(pages) > cutoff}
 
@@ -234,9 +235,9 @@ def chunk_document(
     tokenizer: Tokenizer | None = None,
 ) -> list[Chunk]:
     tok = tokenizer or get_tokenizer()
-    n_pages = max((l.page for l in doc.lines), default=1)
+    n_pages = max((line.page for line in doc.lines), default=1)
     drop = _boilerplate(doc.lines, n_pages)
-    lines = [l for l in doc.lines if l.text.strip() not in drop]
+    lines = [line for line in doc.lines if line.text.strip() not in drop]
     if not lines:
         return []
 
@@ -277,10 +278,10 @@ def _fixed(lines: Sequence[Line], tok: Tokenizer, size: int, overlap: int) -> li
     # Track which page each token came from so a chunk can still cite pages.
     tokens: list[str] = []
     token_pages: list[int] = []
-    for l in lines:
-        pieces = tok.encode_pieces(l.text + " ")
+    for line in lines:
+        pieces = tok.encode_pieces(line.text + " ")
         tokens.extend(pieces)
-        token_pages.extend([l.page] * len(pieces))
+        token_pages.extend([line.page] * len(pieces))
 
     if not tokens:
         return []
@@ -351,27 +352,27 @@ def _section(lines: Sequence[Line], tok: Tokenizer, size: int, overlap: int) -> 
         current = []
 
     in_references = False
-    for l in lines:
-        candidate = _is_heading(l, body)
-        if candidate and in_references and _NUMBERED.match(l.text.strip()):
+    for line in lines:
+        candidate = _is_heading(line, body)
+        if candidate and in_references and _NUMBERED.match(line.text.strip()):
             candidate = False  # a numbered entry in a reference list
         if candidate:
             flush()
-            heading = l.text.strip()
-            heading_page = l.page
+            heading = line.text.strip()
+            heading_page = line.page
             in_references = bool(_REFERENCE_SECTION.search(heading))
             # The heading is deliberately *not* appended to the body. _pack
             # prefixes it to every chunk in the section; keeping it here too
             # made the first chunk of every section repeat its own heading,
             # which polluted both the embedding and the BM25 term counts.
         else:
-            current.append((l.text, l.page))
+            current.append((line.text, line.page))
     flush()
     return out
 
 
 def _line_units(lines: Sequence[Line]) -> list[tuple[str, int]]:
-    return [(l.text, l.page) for l in lines]
+    return [(line.text, line.page) for line in lines]
 
 
 def _pack(

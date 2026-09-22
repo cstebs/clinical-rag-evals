@@ -17,12 +17,14 @@ does exactly two things that matter to the eval:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from .index import Hit
 from .llm import Call, LLMClient
-from .prompts import Prompt, load as load_prompt
+from .prompts import Prompt
+from .prompts import load as load_prompt
 from .retrieve import format_context
 
 ABSTAIN_MARKER = "INSUFFICIENT_CONTEXT"

@@ -35,10 +35,11 @@ import json
 import re
 import time
 import urllib.robotparser
-from dataclasses import dataclass, field, asdict
-from datetime import date, datetime, timezone
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import requests
 
@@ -130,7 +131,7 @@ class Manifest:
         return json.dumps(payload, indent=2, ensure_ascii=False)
 
     @classmethod
-    def load(cls, path: Path | None = None) -> "Manifest":
+    def load(cls, path: Path | None = None) -> Manifest:
         path = path or paths.MANIFEST
         raw = json.loads(path.read_text(encoding="utf-8"))
         return cls(
@@ -295,7 +296,7 @@ def fetch_docs(
             doc.sha256 = hashlib.sha256(blob).hexdigest()
             doc.bytes = len(blob)
             doc.fetched_at = doc.fetched_at or datetime.fromtimestamp(
-                dest.stat().st_mtime, tz=timezone.utc
+                dest.stat().st_mtime, tz=UTC
             ).isoformat()
             print(f"[{i}/{len(docs)}] cached  {doc.doc_id}")
             continue
@@ -331,7 +332,7 @@ def fetch_docs(
         dest.write_bytes(blob)
         doc.sha256 = hashlib.sha256(blob).hexdigest()
         doc.bytes = len(blob)
-        doc.fetched_at = datetime.now(timezone.utc).isoformat()
+        doc.fetched_at = datetime.now(UTC).isoformat()
         print(f"[{i}/{len(docs)}] ok      {doc.doc_id}  {len(blob)/1024:,.0f} KB")
 
     return docs
@@ -365,7 +366,6 @@ def parse_docs(docs: list[DocRecord], force: bool = False) -> list[DocRecord]:
     Storing these rather than a flat string is what makes section-aware chunking
     possible later without re-opening the PDFs.
     """
-    import pymupdf  # imported lazily; heavy and only needed here
 
     paths.PROCESSED.mkdir(parents=True, exist_ok=True)
 
@@ -504,7 +504,7 @@ def run(
     docs = parse_docs(docs, force=force_parse)
 
     manifest = Manifest(
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         index_url=INDEX_URL,
         selection=selection,
         docs=docs,
