@@ -346,6 +346,10 @@ SHA-256 of the text** it ran with:
 }
 ```
 
+Since 0.3.0 each record also carries a `code` block: the harness's own git
+commit SHA at run time, whether the tree was dirty, and the package version.
+The prompt hashes pin the instrument; this pins the code that held it.
+
 Three rules follow, each enforced by code rather than by convention:
 
 1. **A published version is immutable.** `rag-evals prompts audit` compares the
@@ -757,36 +761,6 @@ answering a different question.
 parse is recorded as a failure, not silently converted into an abstention,
 which would inflate the exact metric under test. Same for judge responses, which
 carry a `parse_failed` flag.
-
----
-
-## Cost
-
-Judge and generation calls dominate. Everything is cached on a hash of
-(model, system prompt, user content, schema, effort), so re-running an unchanged
-config costs **$0** and only genuine misses reach the API. Above 20 pending
-calls, `complete_many` routes through the Message Batches API automatically, at
-50% of standard pricing.
-
-```
-$ rag-evals estimate-cost
-batch (50%)    2,380 calls  ~$35.70
-sync           2,380 calls  ~$71.40
-```
-
-(85 questions x 14 configs x 2 calls each: one generation, one judge call that
-scores all three metrics together. Scoring the three metrics in one call rather
-than three is a 3× saving that costs nothing in rigour, because they share the
-same evidence.)
-
-Measured against reality, the estimate runs low. The one full
-generation-and-judge run so far (`008`) cost **$4.22** at batch pricing against
-a ~$2.55 per-config estimate, because a real call carries roughly 8,000 input
-tokens of retrieved context where the estimator assumes 3,500. The 85 rewrite
-calls behind `010` cost $0.56 (sequential, so no batch discount), and `011`'s
-rewrites were all cache hits: $0.00. Every run record carries its own `usage`
-block, so "what did it cost to find out?" is answered in the data rather than
-estimated here.
 
 ---
 

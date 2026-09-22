@@ -21,8 +21,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from . import __version__, metrics, paths
 from . import gold as gold_mod
-from . import metrics, paths
 from .chunk import chunk_corpus
 from .config import RunConfig
 from .generate import generate_batch
@@ -31,6 +31,33 @@ from .judge import judge_batch
 from .llm import LLMClient, LLMUnavailable
 from .prompts import PromptSet
 from .retrieve import Retriever
+
+
+def code_provenance() -> dict[str, Any]:
+    """Which code produced a run record.
+
+    Prompt hashes pin the measurement instrument; this pins the harness
+    itself. ``git_sha`` is the commit at run time and ``dirty`` says whether
+    the working tree had uncommitted changes, in which case the SHA is a
+    lower bound on what ran, not a guarantee. Outside a git checkout both are
+    None and the package version is all that remains.
+    """
+    sha, dirty = None, None
+    try:
+        import subprocess
+
+        root = str(paths.ROOT)
+        sha = subprocess.check_output(
+            ["git", "-C", root, "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
+        ).strip()
+        status = subprocess.check_output(
+            ["git", "-C", root, "status", "--porcelain", "--untracked-files=no"],
+            text=True, stderr=subprocess.DEVNULL,
+        )
+        dirty = bool(status.strip())
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    return {"git_sha": sha, "dirty": dirty, "version": __version__}
 
 
 class ConfigUnavailable(RuntimeError):
@@ -160,6 +187,7 @@ def execute(
         "run_id": cfg.run_id,
         "description": cfg.description,
         "created_at": datetime.now(UTC).isoformat(),
+        "code": code_provenance(),
         "config": cfg.to_dict(),
         "prompts": prompt_set.record(),
         "corpus": {

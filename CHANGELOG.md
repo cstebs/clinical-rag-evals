@@ -9,7 +9,13 @@ the change-control and rollback procedure.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-21
+
 ### Added
+- Every run record now carries a `code` block: the git commit SHA of the
+  harness at run time, whether the working tree was dirty, and the package
+  version. Prompt hashes pin the instrument; this pins the code. Pre-0.3.0
+  records have no `code` block and are not backfilled.
 - GitHub Actions CI (`.github/workflows/ci.yml`): `pytest` and
   `rag-evals prompts audit` on every push and pull request, on Python 3.11
   and 3.12. CI badge in the README.
@@ -25,6 +31,12 @@ the change-control and rollback procedure.
   enforced) and a lint step in CI. Unused imports, deprecated `typing`
   imports, and single-letter `l` variables cleaned up to pass it.
 - Git tags `v0.1.0` and `v0.2.0` on the commits the changelog describes.
+
+### Fixed
+- `rag_evals.__version__` had been left at 0.1.0 while `pyproject.toml` said
+  0.2.0. Both now read 0.3.0 and a test asserts they agree.
+- README: the Cost section had been duplicated when the implementation notes
+  were restored. One copy remains.
 
 ### Fixed
 - `pyproject.toml` was listed in `.gitignore` and had never been committed, so
