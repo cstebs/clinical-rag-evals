@@ -1,5 +1,7 @@
 # clinical rag-evals
 
+[![CI](https://github.com/cstebs/clinical-rag-evals/actions/workflows/ci.yml/badge.svg)](https://github.com/cstebs/clinical-rag-evals/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.11%2B-blue) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Retrieval-augmented question answering over FDA guidance documents, where the
 evaluation harness is the product and the retrieval pipeline is the thing being
 measured.
@@ -11,6 +13,37 @@ nobody does: checking whether the LLM judge doing the measuring can be
 trusted at all.
 
 There is deliberately no chatbot UI. A frontend would add nothing to the argument.
+
+---
+
+## TL;DR
+
+Fourteen retrieval configurations over 124 FDA guidance documents, 85 hand-authored
+questions, one variable changed per run. What the table says:
+
+- **Hybrid retrieval (BM25 + dense, rank-fused) beat dense-only by +0.103 recall@5
+  and +0.115 nDCG@10.** BM25 alone also beat dense. Regulatory prose is dense with
+  exact terms of art, and a web-trained embedding model does not know them.
+- **Cross-encoder reranking made things worse at 512-token chunks (-0.041 nDCG@10),
+  and the harness says why:** the reranker reads a 512-token window and 60% of the
+  passages it scored ran over it. At 256-token chunks the sign flips (+0.018).
+- **Chunking strategy bought nothing.** Section-aware chunking, by far the most work
+  to build, is no better than blind fixed windows. Chunk size is the knob that
+  matters: 256 tokens is +0.069 recall@5.
+- **LLM query rewriting gives the best deep recall** (recall@10 0.952, the best in
+  the table) and the worst first hit (recall@1 drops 0.09). Same mechanism, two sides.
+- **The LLM judge is validated, not assumed:** Cohen's κ = 0.81 on correctness and
+  1.00 on abstention against 40 blind hand labels, with every disagreement published
+  beside the judge's reasoning.
+- **Generation fails by refusing, not by inventing:** zero confabulations on 12 trap
+  questions, including one that names a real document and asks for a figure it does
+  not contain. The cost is 11 false abstentions, concentrated in multi-hop questions.
+- **An earlier version of this table was measuring a bug** in the heading detector.
+  Every affected run was re-run and three findings changed size or sign. That is
+  written up below rather than quietly replaced.
+
+The retrieval half reproduces for $0 with no credentials. The generation half cost
+about $5 in total API spend, and every run record carries its own cost accounting.
 
 ---
 
@@ -567,6 +600,54 @@ handling - not from chunking, and, at this chunk size, not from reranking.
 
 
 
+### The chunker bug this table used to hide
+
+An earlier version of this README reported that section-aware chunking "detects
+headings on 98% of chunks" and bought nothing. The number was real and the
+conclusion was wrong, because the heading detector was matching junk.
+
+The outline-marker pattern `^\d+(?:\.\d+)*\.?\s+[A-Z]`, meant to catch
+"3.2 Study Design", also matched street addresses from the cover page
+("10903 New Hampshire Ave., Bldg. 71"), footnote markers ("4 In this guidance,
+the term..."), dates ("27 April 1995") and numbered list items ("3. Evidence of
+positive dechallenge or positive rechallenge;"). Roughly two thirds of a sampled
+18 detected "headings" were not headings. Separately, the heading line was left
+in the section body *and* prefixed to every chunk by the packer, so the first
+chunk of every section repeated its own heading.
+
+The consequence was not cosmetic. Spurious headings fragment the corpus:
+**7,160 chunks at a median of 213 tokens, against 4,224 at a median of 496 after
+the fix**, on the same 512-token target. The "section-aware" rows were not
+measuring section-aware chunking. They were measuring a corpus shredded into
+half-size fragments by a detector firing on addresses and footnotes.
+
+What the fix consists of, in the order it matters:
+
+- Anything set smaller than the body font is never a heading. That is the whole
+  footnote and cover-address class in one rule.
+- Numeric outline markers require a period (`3. Excipients`) or a multi-level
+  form (`3.2 Study Design`). A bare leading integer is a date or a house number.
+- A capitalisation test separates the subsection "1. Statistical Considerations"
+  from the list item "1. Clinical trials should be conducted in accordance with
+  the ethical principles that". Nothing else can tell those two apart.
+- Table-of-contents dot-leader lines, lines ending in a clause-final `,` `;` `:`,
+  and lines ending in a trailing function word are all rejected.
+- Inside a REFERENCES section, numbered entries are suppressed. Position in the
+  document is the only signal separating "14. Task Force on Risk Management."
+  from a real numbered subsection.
+
+Detections across the corpus fall from 5,047 lines to 1,438, and section coverage
+from 98% of chunks to 93.5%. A hand audit of 40 randomly sampled detections found
+36 real headings, against roughly a third before. Both bugs have regression tests.
+
+Every affected run was re-run against the fixed chunker, so the code in this repo
+is the code that produced these numbers. Runs `001` and `002` use the fixed and
+recursive chunkers and were unaffected; the other eight moved, and three published
+findings changed size or sign as a result - section chunking, chunk size, and
+reranking. Publishing that is the point: a harness whose own instrument was
+miscalibrated, and which says so, is worth more than one reporting a clean number
+nobody checked.
+
 ### The credentialed rows, and the misfire on the way to them
 
 `010`, `011` and the generation columns on `008` required model credentials, and
@@ -621,11 +702,89 @@ estimated here.
 
 ---
 
+## Implementation notes
+
+**Exact search, not FAISS or Chroma.** An ANN index has its own recall loss. In a
+harness whose entire purpose is attributing recall changes to a chosen variable,
+an ANN index adds a second, uncontrolled source of recall loss and confounds
+every row. This corpus produces tens of thousands of 384-dimensional vectors;
+exact search over that is a few milliseconds of NumPy. Paying a correctness tax
+to save milliseconds is the wrong trade in a measurement tool.
+
+**Embeddings are local.** Anthropic has no first-party embeddings endpoint. The
+Messages API's supporting endpoints are Batches, Files, Token Counting and
+Models, so embeddings are either a third-party API or local. Local wins for a
+repo someone else may want to clone and re-run: free, deterministic, offline
+after the first model download. `BAAI/bge-small-en-v1.5` via `fastembed` (ONNX
+Runtime) gives the same weights as the sentence-transformers version without
+pulling in a ~2 GB torch dependency.
+
+**Chunk size is counted in the encoder's own tokens.** `bge-small` truncates at
+512 tokens, silently and with no warning. A harness that measures chunk size in
+characters, or in "roughly 4 characters per token", will report a 1024-token
+configuration as if all 1024 tokens were embedded, and the table will be quietly
+wrong. Sizes here are counted with the actual tokenizer, and every run record
+carries `chunks_over_limit_pct` and `tokens_lost_pct` so the truncation shows up
+as data instead of as a mystery.
+
+**Hybrid fuses ranks, not scores.** BM25 scores are unbounded and
+corpus-dependent; cosine scores sit in [-1, 1]. Any weighted sum needs a
+normalisation scheme that is itself a hidden tuned parameter. Reciprocal rank
+fusion needs neither normalisation nor per-corpus calibration.
+
+**Query rewriting fuses too.** Each generated query is searched separately and
+the result lists are combined by RRF. Concatenating the variants into one long
+string would average the embeddings and typically retrieve *less* than the
+original query did.
+
+**Short stopword list.** Aggressive stopword removal hurts on regulatory text,
+where "should not" and "may be" carry real meaning. `should` and `must` are not
+interchangeable in an FDA guidance, and a lexical retriever that drops them is
+answering a different question.
+
+**Malformed responses are not laundered.** A generation response that fails to
+parse is recorded as a failure, not silently converted into an abstention,
+which would inflate the exact metric under test. Same for judge responses, which
+carry a `parse_failed` flag.
+
+---
+
+## Cost
+
+Judge and generation calls dominate. Everything is cached on a hash of
+(model, system prompt, user content, schema, effort), so re-running an unchanged
+config costs **$0** and only genuine misses reach the API. Above 20 pending
+calls, `complete_many` routes through the Message Batches API automatically, at
+50% of standard pricing.
+
+```
+$ rag-evals estimate-cost
+batch (50%)    2,380 calls  ~$35.70
+sync           2,380 calls  ~$71.40
+```
+
+(85 questions x 14 configs x 2 calls each: one generation, one judge call that
+scores all three metrics together. Scoring the three metrics in one call rather
+than three is a 3× saving that costs nothing in rigour, because they share the
+same evidence.)
+
+Measured against reality, the estimate runs low. The one full
+generation-and-judge run so far (`008`) cost **$4.22** at batch pricing against
+a ~$2.55 per-config estimate, because a real call carries roughly 8,000 input
+tokens of retrieved context where the estimator assumes 3,500. The 85 rewrite
+calls behind `010` cost $0.56 (sequential, so no batch discount), and `011`'s
+rewrites were all cache hits: $0.00. Every run record carries its own `usage`
+block, so "what did it cost to find out?" is answered in the data rather than
+estimated here.
+
+---
+
 ## Repo layout
 
 ```
 rag-evals/
   README.md              <- the deliverable
+  .github/workflows/     <- CI: pytest + prompt audit on every push
   CHANGELOG.md           <- code and prompt changes, by release
   pyproject.toml
   configs/               <- one YAML per experiment run, each pinning prompt versions

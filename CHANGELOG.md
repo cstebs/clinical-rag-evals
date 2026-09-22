@@ -9,6 +9,22 @@ the change-control and rollback procedure.
 
 ## [Unreleased]
 
+### Added
+- GitHub Actions CI (`.github/workflows/ci.yml`): `pytest` and
+  `rag-evals prompts audit` on every push and pull request, on Python 3.11
+  and 3.12. CI badge in the README.
+- README TL;DR with the headline findings, so the results are visible before
+  the method.
+
+### Fixed
+- `pyproject.toml` was listed in `.gitignore` and had never been committed, so
+  a fresh clone could not `pip install -e .` and the `rag-evals` command did
+  not exist. It is now tracked.
+- README: the "chunker bug this table used to hide" section and the
+  implementation notes were dropped from the committed README in 0.2.0 while
+  the prompt-registry section was added, leaving a dangling cross-reference.
+  Both sections are restored.
+
 ## [0.2.0] - 2026-09-18
 
 ### Added

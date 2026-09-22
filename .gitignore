@@ -30,5 +30,4 @@ venv/
 Thumbs.db
 
 SPEC.md
-pyproject.toml
 README-local.md

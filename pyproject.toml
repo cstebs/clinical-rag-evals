@@ -1,0 +1,35 @@
+[project]
+name = "rag-evals"
+version = "0.2.0"
+description = "An evaluation harness for retrieval-augmented QA over FDA guidance documents. The harness is the product."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Colin Stebelski" }]
+
+dependencies = [
+    "anthropic>=0.60",      # generation + LLM judge
+    "fastembed>=0.7",       # ONNX dense embeddings + cross-encoder reranker (no torch)
+    "numpy>=1.26",          # exact vector search, metric math
+    "rank-bm25>=0.2.2",     # lexical retrieval baseline
+    "pymupdf>=1.24",        # PDF text extraction
+    "requests>=2.31",       # corpus fetch
+    "PyYAML>=6.0",          # run configs
+    "tqdm>=4.66",           # progress on long loops
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+rag-evals = "rag_evals.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
