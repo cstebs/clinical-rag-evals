@@ -56,6 +56,13 @@ clients. That repo imports this one and pins run 008's settings, so the retrieva
 numbers above are the numbers for what it actually serves. The eval chose the
 config; the server ships it.
 
+**The same lesson, from classical ML.** [fda-guidance-ml](https://github.com/cstebs/fda-guidance-ml)
+runs classification, regression and clustering on the titles of the full FDA guidance
+index this corpus was drawn from (2,787 documents). There too, exact-term features beat
+dense embeddings: TF-IDF with logistic regression predicts the issuing center at 0.852
+macro-F1, and sentence embeddings and a PyTorch MLP do not beat it. Regulatory text is
+carried by its terms of art, whether you are retrieving passages or classifying titles.
+
 ---
 
 ## What's actually here
